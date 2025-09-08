@@ -1,0 +1,54 @@
+name: dialdesk
+description: "Auto-calling app for teachers to call students sequentially"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core UI
+  cupertino_icons: ^1.0.8
+  
+  # Database
+  sqflite: ^2.3.3+1
+  path_provider: ^2.1.4
+  
+  # Permissions
+  permission_handler: ^11.3.1
+  
+  # Phone calling
+  flutter_phone_direct_caller: ^2.1.1
+  
+  # Excel/CSV import
+  excel: ^4.0.3
+  csv: ^6.0.0
+  
+  # File handling
+  file_picker: ^8.0.3
+  share_plus: ^10.1.0
+  
+  # Background service
+  flutter_background_service: ^5.0.5
+  
+  # Animations
+  animations: ^2.0.11
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "assets/app_icon.png"
+  min_sdk_android: 21
