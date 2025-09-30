@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/db_helper.dart';
 import '../models/app_settings.dart';
+import 'review_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -95,6 +96,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _settings = newSettings;
                         });
                       },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Review Settings',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Customize call review options and messages',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const ReviewSettingsScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.rate_review),
+                      label: const Text('Manage Review Options'),
                     ),
                   ],
                 ),

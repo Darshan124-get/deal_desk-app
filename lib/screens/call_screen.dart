@@ -11,6 +11,7 @@ import '../data/db_helper.dart';
 import '../models/app_settings.dart';
 import '../models/call_log.dart';
 import '../models/phone_number.dart';
+import '../widgets/call_review_dialog.dart';
 
 import '../services/background_service.dart';
 
@@ -193,19 +194,9 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin, 
 
   Future<void> _autoAdvanceToNext() async {
     // This is called when the countdown finishes
-    // We'll mark the current call as completed and move to next
-    if (_current != null) {
-      final now = DateTime.now();
-      final log = CallLog(
-        phoneId: _current!.id ?? 0,
-        phoneNumber: _current!.number,
-        status: CallStatus.completed, // Auto-mark as completed
-        timestamp: now,
-      );
-      await _db.insertLog(log);
-      if (_current!.id != null) {
-        await _db.markCompleted(_current!.id!);
-      }
+    // Mark the current call as completed and move to next
+    if (_current != null && _current!.id != null) {
+      await _db.markCompleted(_current!.id!);
     }
     
     // This will automatically call the next number if auto-calling is active
@@ -217,6 +208,19 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin, 
     await _requestCallPermission();
     await FlutterPhoneDirectCaller.callNumber(_current!.number);
 
+    // Log the call immediately when it's initiated
+    final now = DateTime.now();
+    final log = CallLog(
+      phoneId: _current!.id ?? 0,
+      phoneNumber: _current!.number,
+      status: CallStatus.completed, // Mark as completed when call is made
+      timestamp: now,
+    );
+    await _db.insertLog(log);
+    
+    if (kDebugMode) {
+      print('DEBUG: Call logged for ${_current!.number} at ${now.toString()}');
+    }
     
     // Start the call timer when call is initiated
     if (_isAutoCalling) {
@@ -269,21 +273,68 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin, 
     );
     await _db.insertLog(log);
 
-    
-      if (_current!.id != null) {
-
+    if (_current!.id != null) {
       if (status == CallStatus.completed || status == CallStatus.skipped) {
         await _db.markCompleted(_current!.id!);
       }
     }
 
-    
     if (_isAutoCalling && status == CallStatus.completed) {
       await _advanceToNextNumber();
     } else {
       await _loadAllNumbers();
       _startAutoAdvanceCountdown();
     }
+  }
+
+  Future<void> _showReviewDialog() async {
+    if (_current == null) return;
+    
+    await showDialog(
+      context: context,
+      builder: (context) => CallReviewDialog(
+        phoneNumber: _current!,
+        onReviewSubmitted: () async {
+          await _loadAllNumbers();
+          if (_isAutoCalling) {
+            await _advanceToNextNumber();
+          } else {
+            _startAutoAdvanceCountdown();
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _callSpecificNumber(PhoneNumber number) async {
+    await _requestCallPermission();
+    await FlutterPhoneDirectCaller.callNumber(number.number);
+    
+    // Log the call
+    final now = DateTime.now();
+    final log = CallLog(
+      phoneId: number.id ?? 0,
+      phoneNumber: number.number,
+      status: CallStatus.completed,
+      timestamp: now,
+    );
+    await _db.insertLog(log);
+    
+    if (kDebugMode) {
+      print('DEBUG: Manual call logged for ${number.number} at ${now.toString()}');
+    }
+  }
+
+  Future<void> _reviewSpecificNumber(PhoneNumber number) async {
+    await showDialog(
+      context: context,
+      builder: (context) => CallReviewDialog(
+        phoneNumber: number,
+        onReviewSubmitted: () async {
+          await _loadAllNumbers();
+        },
+      ),
+    );
   }
 
   Future<void> _advanceToNextNumber() async {
@@ -799,7 +850,25 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin, 
                                             );
                                           },
                                         ),
-                                      if (!_isAutoCalling)
+                                      if (!_isAutoCalling) ...[
+                                        IconButton(
+                                          onPressed: () => _callSpecificNumber(number),
+                                          icon: Icon(
+                                            Icons.phone,
+                                            color: Colors.green.shade600,
+                                            size: 20,
+                                          ),
+                                          tooltip: 'Call',
+                                        ),
+                                        IconButton(
+                                          onPressed: () => _reviewSpecificNumber(number),
+                                          icon: Icon(
+                                            Icons.rate_review,
+                                            color: Colors.blue.shade600,
+                                            size: 20,
+                                          ),
+                                          tooltip: 'Review',
+                                        ),
                                         IconButton(
                                           onPressed: () => _showDeleteDialog(number),
                                           icon: Icon(
@@ -809,6 +878,7 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin, 
                                           ),
                                           tooltip: 'Delete',
                                         ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -897,13 +967,6 @@ class _CallScreenState extends State<CallScreen> with TickerProviderStateMixin, 
                               ),
                             ),
                             const SizedBox(width: 8),
-                            ElevatedButton.icon(
-                              onPressed: _current == null || _isAutoCalling 
-                              ? null
-                              : () => _markAndAdvance(CallStatus.completed),
-                          icon: const Icon(Icons.check_circle),
-                          label: const Text('Completed'),
-                      ),
                     ],
                         ),
                       ],

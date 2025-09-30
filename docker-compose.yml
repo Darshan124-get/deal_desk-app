@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  dialdesk-app:
+    build: .
+    container_name: dialdesk-flutter
+    volumes:
+      - ./build:/app/build
+      - ./lib:/app/lib
+      - ./android:/app/android
+      - ./ios:/app/ios
+      - ./pubspec.yaml:/app/pubspec.yaml
+    environment:
+      - FLUTTER_ROOT=/opt/flutter
+      - ANDROID_SDK_ROOT=/opt/android-sdk
+    ports:
+      - "8080:8080"
+    command: ["flutter", "run", "--release", "-d", "web-server", "--web-port", "8080", "--web-hostname", "0.0.0.0"]
+
+  # Development service
+  dialdesk-dev:
+    build: .
+    container_name: dialdesk-dev
+    volumes:
+      - .:/app
+    environment:
+      - FLUTTER_ROOT=/opt/flutter
+      - ANDROID_SDK_ROOT=/opt/android-sdk
+    command: ["flutter", "run", "--debug", "-d", "web-server", "--web-port", "8080", "--web-hostname", "0.0.0.0"]
+    ports:
+      - "8080:8080"
+    profiles:
+      - dev
+
+  # Build only service
+  dialdesk-build:
+    build: .
+    container_name: dialdesk-build
+    volumes:
+      - ./build:/app/build
+    command: ["flutter", "build", "apk", "--release"]
+    profiles:
+      - build
